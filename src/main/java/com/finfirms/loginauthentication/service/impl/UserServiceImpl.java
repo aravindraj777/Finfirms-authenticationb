@@ -3,16 +3,20 @@ package com.finfirms.loginauthentication.service.impl;
 import com.finfirms.loginauthentication.dao.UserRepository;
 import com.finfirms.loginauthentication.dto.AuthDto;
 import com.finfirms.loginauthentication.dto.AuthResponse;
+import com.finfirms.loginauthentication.dto.LoginRequest;
+import com.finfirms.loginauthentication.dto.LoginResponse;
 import com.finfirms.loginauthentication.model.User;
 import com.finfirms.loginauthentication.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -23,9 +27,8 @@ public class UserServiceImpl implements UserService {
 
 
     private final UserRepository userRepository;
-
-
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
 
 
 
@@ -59,15 +62,40 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Override
+    public ResponseEntity<LoginResponse> login(LoginRequest loginRequest) {
+        User user = userRepository.findByName(loginRequest.getName())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        try {
+            // Attempt to authenticate the user
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getName(), loginRequest.getPassword()));
+
+            // If authentication is successful
+            if (authentication.isAuthenticated()) {
+                LoginResponse response = LoginResponse
+                        .builder()
+                        .user(user)
+                        .build();
+                return ResponseEntity.ok(response);
+            }
+        } catch (AuthenticationException e) {
+            // Authentication failed
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+
 
     private boolean isUserExists(String username,String email){
         Optional<User> userByUserName = userRepository.findByName(username);
         Optional<User> userByEmail = userRepository.findByEmail(email);
 
-        if(userByUserName.isPresent() || userByEmail.isPresent()){
-            return true;
-        }
-        return false;
+        return userByUserName.isPresent() || userByEmail.isPresent();
     }
 
 
