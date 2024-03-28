@@ -1,0 +1,16 @@
+spring:
+  application:
+    name : LOGIN-APPLICATION
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/finfirms_db
+    username: root
+    password: '@77SUDHA'
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQLDialect
+
+server:
+  port: 8090
